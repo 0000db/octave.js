@@ -2,7 +2,7 @@
 
 ![CI](https://github.com/0000db/octave.js/actions/workflows/ci.yml/badge.svg)
 
-TypeScript SDK for the [Octra](https://octra.org) blockchain.
+Javascript SDK for the [Octra](https://octra.org) blockchain.
 
 ## Installation
 
