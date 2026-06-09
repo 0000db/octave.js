@@ -1,0 +1,53 @@
+# ── Build output ─────────────────────────────────────────────────────────────
+dist/
+build/
+out/
+*.js.map
+*.d.ts.map
+
+# ── TypeScript incremental cache ──────────────────────────────────────────────
+*.tsbuildinfo
+.tscache/
+
+# ── Dependencies ──────────────────────────────────────────────────────────────
+node_modules/
+
+# ── Test output and coverage ──────────────────────────────────────────────────
+coverage/
+.nyc_output/
+test-results/
+junit.xml
+
+# ── Environment and secrets ───────────────────────────────────────────────────
+.env
+.env.*
+*.local
+*.oct
+*.keystore
+
+# ── OS artifacts ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ── Editor state ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── Claude Code local config ──────────────────────────────────────────────────
+.claude/
+
+# ── Package manager lock files (keep one, ignore the others) ──────────────────
+# This project uses npm. Commit package-lock.json; ignore the others.
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+
+# ── Temporary files ───────────────────────────────────────────────────────────
+tmp/
+temp/
+*.tmp
+*.temp

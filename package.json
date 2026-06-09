@@ -1,0 +1,77 @@
+{
+  "name": "octave.js",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for the Octra network",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./crypto": {
+      "import": "./dist/crypto/index.js",
+      "types": "./dist/crypto/index.d.ts"
+    },
+    "./tx": {
+      "import": "./dist/tx/index.js",
+      "types": "./dist/tx/index.d.ts"
+    },
+    "./wallet": {
+      "import": "./dist/wallet/index.js",
+      "types": "./dist/wallet/index.d.ts"
+    },
+    "./rpc": {
+      "import": "./dist/rpc/index.js",
+      "types": "./dist/rpc/index.d.ts"
+    },
+    "./units": {
+      "import": "./dist/units/index.js",
+      "types": "./dist/units/index.d.ts"
+    },
+    "./program": {
+      "import": "./dist/program/index.js",
+      "types": "./dist/program/index.d.ts"
+    },
+    "./token": {
+      "import": "./dist/token/index.js",
+      "types": "./dist/token/index.d.ts"
+    },
+    "./circle": {
+      "import": "./dist/circle/index.js",
+      "types": "./dist/circle/index.d.ts"
+    },
+    "./bridge": {
+      "import": "./dist/bridge/index.js",
+      "types": "./dist/bridge/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "ci:check-runtime-deps": "node -e \"const p=JSON.parse(require('fs').readFileSync('package.json','utf8')); if(p.dependencies && Object.keys(p.dependencies).length>0){console.error('ERROR: runtime dependencies found',p.dependencies);process.exit(1)}; console.log('OK: zero runtime dependencies');\""
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vitest": "^1.4.0",
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/0000db/octave.js"
+  },
+  "homepage": "https://github.com/0000db/octave.js#readme",
+  "keywords": ["octra", "blockchain", "sdk", "web3", "typescript", "ed25519"]
+}
