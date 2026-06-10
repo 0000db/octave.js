@@ -47,7 +47,7 @@ export function parseToken(humanAmount: string, decimals: number): bigint {
   const [intPart, fracPart = ""] = trimmed.split(".");
   const unit = 10n ** BigInt(decimals);
   const paddedFrac = fracPart.padEnd(decimals, "0").slice(0, decimals);
-  return BigInt(intPart!) * unit + BigInt(paddedFrac);
+  return BigInt(intPart!) * unit + (paddedFrac.length > 0 ? BigInt(paddedFrac) : 0n);
 }
 
 export function formatToken(rawAmount: bigint, decimals: number): string {

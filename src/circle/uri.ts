@@ -12,7 +12,8 @@ export class OctUri {
     const rest = uri.slice(6);
     const slash = rest.indexOf("/");
     if (slash < 0) return new OctUri(rest, "/index.html");
-    return new OctUri(rest.slice(0, slash), rest.slice(slash) || "/index.html");
+    const path = rest.slice(slash);
+    return new OctUri(rest.slice(0, slash), path === "/" ? "/index.html" : path);
   }
 
   toString(): string {
