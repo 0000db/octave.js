@@ -283,3 +283,83 @@ describe("parseOu", () => {
     expect(() => parseOu("abc")).toThrow();
   });
 });
+
+describe("parseOct excess-precision", () => {
+  it("rejects more than 6 fractional digits instead of silently truncating", () => {
+    expect(() => parseOct("1.1234567")).toThrow(/fractional digits/);
+    // 6 digits is fine
+    expect(parseOct("1.123456")).toBe(1_123_456n);
+  });
+});
+
+describe("parseToken excess-precision", () => {
+  it("rejects more fractional digits than allowed", async () => {
+    const { parseToken } = await import("../src/units/oct.js");
+    expect(() => parseToken("1.123", 2)).toThrow(/fractional digits/);
+    expect(parseToken("1.12", 2)).toBe(112n);
+  });
+});
+
+describe("24-word mnemonic", () => {
+  it("generateMnemonic(256) produces 24 valid words", async () => {
+    const { generateMnemonic } = await import("../src/crypto/index.js");
+    const m = await generateMnemonic(256);
+    expect(m.split(" ").length).toBe(24);
+    expect(await validateMnemonic(m)).toBe(true);
+  });
+
+  it("generateMnemonic() default still emits 12 words", async () => {
+    const { generateMnemonic } = await import("../src/crypto/index.js");
+    const m = await generateMnemonic();
+    expect(m.split(" ").length).toBe(12);
+    expect(await validateMnemonic(m)).toBe(true);
+  });
+
+  it("rejects invalid strength values", async () => {
+    const { generateMnemonic } = await import("../src/crypto/index.js");
+    // @ts-expect-error testing runtime guard
+    await expect(generateMnemonic(100)).rejects.toThrow();
+  });
+});
+
+describe("validateAddressFormat", () => {
+  it("accepts a freshly derived address", async () => {
+    const { validateAddressFormat } = await import("../src/crypto/index.js");
+    const seed = new Uint8Array(32).fill(1);
+    const kp = await makeKeypair(seed);
+    expect(validateAddressFormat(kp.address)).toBe(true);
+  });
+
+  it("rejects bad prefix", async () => {
+    const { validateAddressFormat } = await import("../src/crypto/index.js");
+    expect(validateAddressFormat("xyz" + "1".repeat(44))).toBe(false);
+  });
+
+  it("rejects wrong length", async () => {
+    const { validateAddressFormat } = await import("../src/crypto/index.js");
+    expect(validateAddressFormat("oct" + "1".repeat(43))).toBe(false);
+    expect(validateAddressFormat("oct" + "1".repeat(45))).toBe(false);
+  });
+
+  it("rejects characters outside the base58 alphabet", async () => {
+    const { validateAddressFormat } = await import("../src/crypto/index.js");
+    // 'O' (uppercase O) and '0' are excluded from base58
+    expect(validateAddressFormat("oct" + "O".repeat(44))).toBe(false);
+    expect(validateAddressFormat("oct" + "0".repeat(44))).toBe(false);
+  });
+
+  it("accepts addresses whose hash has natural base58 length < 44 (padded form)", async () => {
+    // Regression: ~5.8% of sha256 hashes are < 58^43, so deriveAddress pads with a leading
+    // "1" to reach 44 chars. The earlier validator decoded the body and rejected anything
+    // whose decoded length exceeded 32, which rejected this entire ~1-in-17 slice of
+    // legitimately derived addresses.
+    const { validateAddressFormat } = await import("../src/crypto/index.js");
+    const { base58Encode } = await import("../src/crypto/encoding.js");
+    const hash = new Uint8Array(32);
+    hash[0] = 0x08; // hash value just below 2^252, so natural base58 length is 43
+    let b58 = base58Encode(hash);
+    while (b58.length < 44) b58 = "1" + b58;
+    expect(b58.length).toBe(44);
+    expect(validateAddressFormat("oct" + b58)).toBe(true);
+  });
+});

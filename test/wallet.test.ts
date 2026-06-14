@@ -44,6 +44,42 @@ describe("Wallet.fromPrivateKey", () => {
     const imported = await Wallet.fromPrivateKey(original.privateKeyBase64);
     expect(imported.address).toBe(original.address);
   });
+
+  it("accepts a 64-byte seed||pub form when pub matches seed", async () => {
+    const original = await Wallet.fromMnemonic(TEST_MNEMONIC, 1);
+    const { base64Encode } = await import("../src/crypto/encoding.js");
+    const combined = new Uint8Array(64);
+    combined.set(original.keypair.secretKey, 0);
+    combined.set(original.keypair.publicKey, 32);
+    const imported = await Wallet.fromPrivateKey(base64Encode(combined));
+    expect(imported.address).toBe(original.address);
+  });
+
+  it("rejects 64-byte form when pub does not match seed", async () => {
+    const original = await Wallet.fromMnemonic(TEST_MNEMONIC, 1);
+    const { base64Encode } = await import("../src/crypto/encoding.js");
+    const combined = new Uint8Array(64);
+    combined.set(original.keypair.secretKey, 0);
+    // Wrong pub (all 0xFF).
+    combined.set(new Uint8Array(32).fill(0xff), 32);
+    await expect(Wallet.fromPrivateKey(base64Encode(combined))).rejects.toThrow(/public-half/);
+  });
+
+  it("rejects byte lengths other than 32 or 64", async () => {
+    const { base64Encode } = await import("../src/crypto/encoding.js");
+    // 31 bytes
+    await expect(
+      Wallet.fromPrivateKey(base64Encode(new Uint8Array(31))),
+    ).rejects.toThrow(/32 bytes/);
+    // 48 bytes
+    await expect(
+      Wallet.fromPrivateKey(base64Encode(new Uint8Array(48))),
+    ).rejects.toThrow(/32 bytes/);
+    // 65 bytes
+    await expect(
+      Wallet.fromPrivateKey(base64Encode(new Uint8Array(65))),
+    ).rejects.toThrow(/32 bytes/);
+  });
 });
 
 describe("Wallet.generate", () => {

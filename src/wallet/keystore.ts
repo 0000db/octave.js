@@ -49,7 +49,8 @@ export async function encryptKeystore(plaintext: string, pin: string): Promise<U
 }
 
 export async function decryptKeystore(data: Uint8Array, pin: string): Promise<string> {
-  if (data.length < 61) throw new Error("Keystore data too short");
+  // Minimum = 32-byte salt + 12-byte nonce + 16-byte AES-GCM tag = 60 bytes (empty ciphertext).
+  if (data.length < 60) throw new Error("Keystore data too short");
 
   const salt = data.slice(0, 32);
   const nonce = data.slice(32, 44);

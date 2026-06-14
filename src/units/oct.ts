@@ -10,7 +10,13 @@ export function parseOct(humanString: string): RawAmount {
   }
 
   const [intPart, fracPart = ""] = trimmed.split(".");
-  const paddedFrac = fracPart.padEnd(OCT_DECIMALS, "0").slice(0, OCT_DECIMALS);
+  if (fracPart.length > OCT_DECIMALS) {
+    throw new OctraValidationError(
+      "amount",
+      `OCT amount has ${fracPart.length} fractional digits, max is ${OCT_DECIMALS}: "${humanString}"`,
+    );
+  }
+  const paddedFrac = fracPart.padEnd(OCT_DECIMALS, "0");
 
   const raw = BigInt(intPart!) * OCT_UNIT + BigInt(paddedFrac);
   return asRawAmount(raw);
@@ -45,8 +51,14 @@ export function parseToken(humanAmount: string, decimals: number): bigint {
   }
 
   const [intPart, fracPart = ""] = trimmed.split(".");
+  if (fracPart.length > decimals) {
+    throw new OctraValidationError(
+      "amount",
+      `Token amount has ${fracPart.length} fractional digits, max is ${decimals}: "${humanAmount}"`,
+    );
+  }
   const unit = 10n ** BigInt(decimals);
-  const paddedFrac = fracPart.padEnd(decimals, "0").slice(0, decimals);
+  const paddedFrac = fracPart.padEnd(decimals, "0");
   return BigInt(intPart!) * unit + (paddedFrac.length > 0 ? BigInt(paddedFrac) : 0n);
 }
 

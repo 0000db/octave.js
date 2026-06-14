@@ -1,8 +1,12 @@
 import { sha256, pbkdf2Sha256 } from "../crypto/hash.js";
 import { hexEncode } from "../crypto/encoding.js";
+import { KEYSTORE_PBKDF2_ITERATIONS } from "../core/constants.js";
 
 const OCRS1_MAGIC = new TextEncoder().encode("OCRS1");
-const SEAL_PBKDF2_ITERATIONS = 100_000;
+// Shares the keystore's PBKDF2 iteration count so both passphrase-derived KEKs track the
+// same OWASP 2024 PBKDF2-SHA256 guidance and cannot drift apart.
+// BREAKING: assets sealed with previous (100_000) iterations cannot be unsealed by this version.
+const SEAL_PBKDF2_ITERATIONS = KEYSTORE_PBKDF2_ITERATIONS;
 
 export type PaddingClass = "4k" | "16k" | "32k" | "128k";
 

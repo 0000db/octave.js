@@ -1,8 +1,29 @@
 import { base58Encode, base64UrlDecode } from "./encoding.js";
 import { sha256 } from "./hash.js";
 import type { Keypair, Address } from "../core/types.js";
-import { ADDRESS_PREFIX, ADDRESS_B58_LENGTH } from "../core/constants.js";
+import { ADDRESS_PREFIX, ADDRESS_B58_LENGTH, ADDRESS_TOTAL_LENGTH } from "../core/constants.js";
 import { OctraValidationError } from "../core/errors.js";
+
+const BASE58_ALPHABET_SET = new Set("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz");
+
+// Local format check: prefix, total length, and base58 alphabet. Does NOT validate that the
+// address corresponds to an account that exists on chain. There is no on-address checksum
+// in the Octra spec, so a single-character typo within the base58 alphabet is undetectable here.
+export function validateAddressFormat(addr: string): boolean {
+  if (typeof addr !== "string") return false;
+  if (addr.length !== ADDRESS_TOTAL_LENGTH) return false;
+  if (!addr.startsWith(ADDRESS_PREFIX)) return false;
+  for (let i = ADDRESS_PREFIX.length; i < addr.length; i++) {
+    if (!BASE58_ALPHABET_SET.has(addr[i]!)) return false;
+  }
+  return true;
+}
+
+export function assertAddressFormat(addr: string): asserts addr is Address {
+  if (!validateAddressFormat(addr)) {
+    throw new OctraValidationError("address", `Malformed Octra address: "${addr}"`);
+  }
+}
 
 const ED25519_PKCS8_HEADER = new Uint8Array([
   0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06,

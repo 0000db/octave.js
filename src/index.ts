@@ -18,6 +18,7 @@ export {
   hexEncode, hexDecode,
   keypairFromSeed, makeKeypair, generateKeypair,
   signBytes, verifySignature, getSigningKey, deriveAddress,
+  validateAddressFormat, assertAddressFormat,
   ed25519SeedToX25519PrivateKey, ed25519PubToX25519, x25519DeriveShared,
   deriveHdSeed,
   generateMnemonic, validateMnemonic, mnemonicToSeed,

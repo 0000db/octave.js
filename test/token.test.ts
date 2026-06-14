@@ -22,8 +22,8 @@ describe("parseToken", () => {
     expect(parseToken("1.000001", 6)).toBe(1_000_001n);
   });
 
-  it("truncates extra decimal places", () => {
-    expect(parseToken("1.1234567", 6)).toBe(1_123_456n);
+  it("rejects extra decimal places instead of silently truncating", () => {
+    expect(() => parseToken("1.1234567", 6)).toThrow(/fractional digits/);
   });
 
   it("throws on invalid input", () => {

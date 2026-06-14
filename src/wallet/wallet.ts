@@ -6,6 +6,37 @@ import { serializeKeystore, deserializeKeystore } from "./keystore.js";
 import type { Keypair, Address, Signer } from "../core/types.js";
 import { OctraValidationError } from "../core/errors.js";
 
+// Accepts a raw private-key blob in either of the two on-disk shapes the SDK supports:
+//   * 32 bytes — bare Ed25519 seed
+//   * 64 bytes — libsodium-style seed(32) || pub(32). The pub half is verified against the
+//     pubkey derived from the seed so a tampered or stale upper half cannot silently override
+//     the identity that signs/encrypts with this wallet.
+async function keypairFromRawPriv(
+  raw: Uint8Array,
+  field: string,
+): Promise<Keypair & { signingKey: CryptoKey }> {
+  if (raw.length !== 32 && raw.length !== 64) {
+    throw new OctraValidationError(
+      field,
+      `Private key must be 32 bytes (seed) or 64 bytes (seed||pub), got ${raw.length}`,
+    );
+  }
+  const seed32 = raw.length === 32 ? raw : raw.slice(0, 32);
+  const kp = await makeKeypair(seed32);
+  if (raw.length === 64) {
+    const expectedPub = raw.subarray(32, 64);
+    let mismatch = kp.publicKey.length !== expectedPub.length ? 1 : 0;
+    for (let i = 0; i < kp.publicKey.length; i++) mismatch |= kp.publicKey[i]! ^ expectedPub[i]!;
+    if (mismatch !== 0) {
+      throw new OctraValidationError(
+        field,
+        "64-byte private key public-half does not match seed-derived public key",
+      );
+    }
+  }
+  return kp;
+}
+
 export class Wallet implements Signer {
   readonly address: Address;
   readonly publicKeyBytes: Uint8Array;
@@ -48,15 +79,7 @@ export class Wallet implements Signer {
 
   static async fromPrivateKey(privKeyBase64: string): Promise<Wallet> {
     const raw = base64Decode(privKeyBase64.trim());
-    let seed32: Uint8Array;
-    if (raw.length >= 64) {
-      seed32 = raw.slice(0, 32);
-    } else if (raw.length >= 32) {
-      seed32 = raw.slice(0, 32);
-    } else {
-      throw new OctraValidationError("privKeyBase64", "Private key must be at least 32 bytes");
-    }
-    const kp = await makeKeypair(seed32);
+    const kp = await keypairFromRawPriv(raw, "privKeyBase64");
     return new Wallet(kp, kp.signingKey);
   }
 
@@ -116,16 +139,7 @@ export class Wallet implements Signer {
     const data = await deserializeKeystore(raw, pin);
 
     const rawKey = base64Decode(data.priv);
-    let seed32: Uint8Array;
-    if (rawKey.length >= 64) {
-      seed32 = rawKey.slice(0, 32);
-    } else if (rawKey.length >= 32) {
-      seed32 = rawKey.slice(0, 32);
-    } else {
-      throw new OctraValidationError("priv", "Invalid private key in keystore");
-    }
-
-    const kp = await makeKeypair(seed32);
+    const kp = await keypairFromRawPriv(rawKey, "priv");
 
     const masterSeed = data.master_seed ? base64Decode(data.master_seed) : undefined;
     const hdVersion = (data.hd_version === 1 || data.hd_version === 2) ? data.hd_version : 2;

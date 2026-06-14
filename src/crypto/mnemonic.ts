@@ -2,30 +2,55 @@ import { BIP39_WORDLIST } from "./bip39_wordlist.js";
 import { sha256, pbkdf2Sha512 } from "./hash.js";
 import { MNEMONIC_PBKDF2_ITERATIONS } from "../core/constants.js";
 
-export async function generateMnemonic12Async(): Promise<string> {
-  const entropy = globalThis.crypto.getRandomValues(new Uint8Array(16));
+export type MnemonicStrength = 128 | 160 | 192 | 224 | 256;
+
+export async function generateMnemonicAsync(strength: MnemonicStrength = 128): Promise<string> {
+  if (![128, 160, 192, 224, 256].includes(strength)) {
+    throw new Error(`Invalid mnemonic strength ${strength}; must be 128, 160, 192, 224, or 256`);
+  }
+  const entropyBytes = strength / 8;
+  const checksumBits = strength / 32;
+  const wordCount = (strength + checksumBits) / 11;
+  const totalBits = wordCount * 11;
+  const totalBytes = Math.ceil(totalBits / 8);
+
+  const entropy = globalThis.crypto.getRandomValues(new Uint8Array(entropyBytes));
   const hash = await sha256(entropy);
 
-  const bits = new Uint8Array(17);
+  const bits = new Uint8Array(totalBytes);
   bits.set(entropy);
-  bits[16] = hash[0]!;
+  // Pack the checksum bits into the byte(s) immediately after the entropy.
+  // For 128-bit entropy: 4 checksum bits go into bits[16] high nibble (entropy ends on byte boundary, so this is just bits[16] = hash[0]).
+  // For 256-bit entropy: 8 checksum bits = hash[0] → bits[32].
+  // General formula: pack checksumBits bits starting at bit position entropyBits.
+  for (let i = 0; i < checksumBits; i++) {
+    const srcBit = (hash[Math.floor(i / 8)]! >> (7 - (i % 8))) & 1;
+    const dstBitPos = strength + i;
+    const dstByte = Math.floor(dstBitPos / 8);
+    const dstOff = dstBitPos % 8;
+    bits[dstByte] = (bits[dstByte]! | (srcBit << (7 - dstOff))) & 0xff;
+  }
 
   const words: string[] = [];
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < wordCount; i++) {
     const bitPos = i * 11;
     const byteIdx = Math.floor(bitPos / 8);
     const bitOff = bitPos % 8;
 
-    let val =
-      ((bits[byteIdx]! << 16) |
-        (bits[byteIdx + 1]! << 8) |
-        (byteIdx + 2 < 17 ? bits[byteIdx + 2]! : 0)) >>>
-      0;
+    const b0 = bits[byteIdx]!;
+    const b1 = byteIdx + 1 < totalBytes ? bits[byteIdx + 1]! : 0;
+    const b2 = byteIdx + 2 < totalBytes ? bits[byteIdx + 2]! : 0;
+    let val = ((b0 << 16) | (b1 << 8) | b2) >>> 0;
     val = (val >>> (24 - 11 - bitOff)) & 0x7ff;
 
     words.push(BIP39_WORDLIST[val]!);
   }
   return words.join(" ");
+}
+
+// Backward-compat alias: 12-word default.
+export async function generateMnemonic12Async(): Promise<string> {
+  return generateMnemonicAsync(128);
 }
 
 export async function validateMnemonic(mnemonic: string): Promise<boolean> {

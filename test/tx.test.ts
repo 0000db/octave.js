@@ -185,3 +185,40 @@ describe("signTxWithKey", () => {
     expect(valid).toBe(true);
   });
 });
+
+// Frozen end-to-end vector: any future change to field ordering, JSON escaping,
+// or Ed25519 wiring will fail these byte-exact assertions.
+describe("frozen canonical-JSON + signature vector", () => {
+  const SEED_HEX = "0101010101010101010101010101010101010101010101010101010101010101";
+  const EXPECTED_ADDR = "oct4XmjKEd9A96KhoMX94zWJmd28dcPisbWGYWtad1dQ9v5";
+  const EXPECTED_PUB_HEX = "8a88e3dd7409f195fd52db2d3cba5d72ca6709bf1d94121bf3748801b40f6f5c";
+  const EXPECTED_CANONICAL =
+    '{"from":"oct4XmjKEd9A96KhoMX94zWJmd28dcPisbWGYWtad1dQ9v5","to_":"oct4XmjKEd9A96KhoMX94zWJmd28dcPisbWGYWtad1dQ9v5","amount":"1000000","nonce":42,"ou":"200000","timestamp":1700000000,"op_type":"standard","message":"hello \\"oct\\" \\\\ \\n"}';
+  const EXPECTED_SIG_B64 =
+    "lJiansZKYnQ/GkoIAB+aHSC0UkUeoMH5VepNCkfKtIq0iGwPWJY+V0xmWLIs/P8zoS/J7d+iv3v61RJ9aNyOBg==";
+  const EXPECTED_HASH_HEX =
+    "995d697f6239951db171d4c26a5295d3d8f5f099efbcb11eba8b879846c1ccac";
+
+  it("matches frozen address, canonical bytes, signature, and tx hash", async () => {
+    const { hexDecode, hexEncode } = await import("../src/crypto/encoding.js");
+    const seed = hexDecode(SEED_HEX);
+    const kp = await makeKeypair(seed);
+    expect(kp.address).toBe(EXPECTED_ADDR);
+    expect(hexEncode(kp.publicKey)).toBe(EXPECTED_PUB_HEX);
+
+    const tx = buildTransfer({
+      from: kp.address as string,
+      to: kp.address as string,
+      amount: 1_000_000n,
+      nonce: 42,
+      fee: "200000",
+      timestamp: 1_700_000_000,
+      message: 'hello "oct" \\ \n',
+    });
+    expect(canonicalJson(tx)).toBe(EXPECTED_CANONICAL);
+
+    const signed = await signTxWithKey(tx, kp.signingKey, kp.publicKey);
+    expect(signed.signature).toBe(EXPECTED_SIG_B64);
+    expect(await txHash(tx)).toBe(EXPECTED_HASH_HEX);
+  });
+});
