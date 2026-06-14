@@ -1,8 +1,9 @@
-# ![Octave.js](https://www.npmjs.com/package/octave.js)
+# Octave.js
 
 ![CI](https://github.com/0000db/octave.js/actions/workflows/ci.yml/badge.svg)
 
 Javascript SDK for the [Octra](https://octra.org) blockchain.
+You can find the npm package [here](https://www.npmjs.com/package/octave.js)
 
 ## Installation
 
